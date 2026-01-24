@@ -324,7 +324,7 @@ export const DEFAULT_CONVERSATION_SETTINGS: ConversationSettings = {
   selectedGeminiModel: 'gemini-2.5-flash',
 
   avatarMediaUrl:
-    'https://storage.googleapis.com/dara-c1b52.appspot.com/daras_ai/media/26fddf96-3931-11ef-bb1d-02420a000107/1080pexport.mov',
+    'https://cdn.jsdelivr.net/gh/viv2005ek/fantu-avatars@master/movs/GeneralMov.mov',
   avatarPreviewImageUrl:
-    'https://images.pexels.com/photos/3769021/pexels-photo-3769021.jpeg'
+    'https://cdn.jsdelivr.net/gh/viv2005ek/fantu-avatars@master/images/General.png'
 };
