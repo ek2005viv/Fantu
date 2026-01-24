@@ -4,24 +4,35 @@ import { MessageSquare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Sidebar from '../components/Sidebar';
 import ChatView from '../components/ChatView';
-import { Conversation } from '../types';
-import { subscribeToUserConversations, createConversation } from '../services/firestore';
+import CompanyChat from '../components/CompanyChat';
+import { Conversation, Company } from '../types';
+import { subscribeToUserConversations, createConversation, subscribeToUserCompanies, createCompany } from '../services/firestore';
 
 export default function Dashboard() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [activeCompanyId, setActiveCompanyId] = useState<string | null>(null);
   const [creatingChat, setCreatingChat] = useState(false);
+  const [creatingCompany, setCreatingCompany] = useState(false);
 
   const { currentUser, loading } = useAuth();
 
   useEffect(() => {
     if (!currentUser) return;
 
-    const unsubscribe = subscribeToUserConversations(currentUser.uid, (convs) => {
+    const unsubscribeConversations = subscribeToUserConversations(currentUser.uid, (convs) => {
       setConversations(convs);
     });
 
-    return () => unsubscribe();
+    const unsubscribeCompanies = subscribeToUserCompanies(currentUser.uid, (comps) => {
+      setCompanies(comps);
+    });
+
+    return () => {
+      unsubscribeConversations();
+      unsubscribeCompanies();
+    };
   }, [currentUser]);
 
   async function handleNewChat() {
@@ -32,10 +43,29 @@ export default function Dashboard() {
       const title = `Chat ${conversations.length + 1}`;
       const newId = await createConversation(currentUser.uid, title);
       setActiveConversationId(newId);
+      setActiveCompanyId(null);
     } catch (error) {
       console.error('Failed to create conversation:', error);
     } finally {
       setCreatingChat(false);
+    }
+  }
+
+  async function handleNewCompany() {
+    if (!currentUser || creatingCompany) return;
+
+    const companyName = prompt('Enter company name:');
+    if (!companyName) return;
+
+    setCreatingCompany(true);
+    try {
+      const newId = await createCompany(currentUser.uid, companyName);
+      setActiveCompanyId(newId);
+      setActiveConversationId(null);
+    } catch (error) {
+      console.error('Failed to create company:', error);
+    } finally {
+      setCreatingCompany(false);
     }
   }
 
@@ -55,15 +85,22 @@ export default function Dashboard() {
     <div className="h-screen flex bg-white">
       <Sidebar
         conversations={conversations}
+        companies={companies}
         activeConversationId={activeConversationId}
+        activeCompanyId={activeCompanyId}
         onSelectConversation={setActiveConversationId}
+        onSelectCompany={setActiveCompanyId}
         onNewChat={handleNewChat}
+        onNewCompany={handleNewCompany}
         creatingChat={creatingChat}
+        creatingCompany={creatingCompany}
       />
 
       <div className="flex-1 flex flex-col">
         {activeConversationId ? (
           <ChatView conversationId={activeConversationId} />
+        ) : activeCompanyId ? (
+          <CompanyChat companyId={activeCompanyId} />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
             <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
@@ -73,7 +110,7 @@ export default function Dashboard() {
               Start a New Conversation
             </h2>
             <p className="text-gray-500 max-w-md">
-              Start a new conversation to talk with the AI. Click "New Chat" in the sidebar to begin.
+              Start a new conversation to talk with the AI. Click "New Chat" or "Add Company" in the sidebar to begin.
             </p>
           </div>
         )}

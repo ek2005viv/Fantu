@@ -1,19 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Mic, MicOff, Settings } from 'lucide-react';
-import { Paperclip } from 'lucide-react';
 
-import { 
-  Message, 
-  ConversationSettings, 
-  DEFAULT_CONVERSATION_SETTINGS 
+import {
+  Message,
+  ConversationSettings,
+  DEFAULT_CONVERSATION_SETTINGS
 } from '../types';
 import { subscribeToMessages, addMessage, subscribeToConversation, updateConversationSettings } from '../services/firestore';
 import { generateAIResponse } from '../services/mockAI';
-import { generateAvatarVideo, GooeyVideoResponse } from '../services/gooey'; // Import GooeyVideoResponse from gooey.ts
+import { generateAvatarVideo, GooeyVideoResponse } from '../services/gooey';
 import { speakText, stopSpeaking } from '../services/tts';
 import AvatarSettingsPanel from './AvatarSettingsPanel';
 import VideoPlayer, { VideoState } from './VideoPlayer';
+import ChatHeader from './ChatHeader';
+import TranscriptView from './TranscriptView';
+import MessageInput from './MessageInput';
 
 interface ChatViewProps {
   conversationId: string;
@@ -63,8 +64,8 @@ declare global {
 
 export default function ChatView({ conversationId }: ChatViewProps) {
   const [attachments, setAttachments] = useState<File[]>([]);
-const [attachmentContext, setAttachmentContext] = useState<string>(''); 
-const [isProcessingAttachments, setIsProcessingAttachments] = useState(false);
+  const [attachmentContext, setAttachmentContext] = useState<string>('');
+  const [isProcessingAttachments, setIsProcessingAttachments] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [videoState, setVideoState] = useState<VideoState>('idle');
@@ -76,9 +77,8 @@ const [isProcessingAttachments, setIsProcessingAttachments] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState<ConversationSettings>(DEFAULT_CONVERSATION_SETTINGS);
   const [transcriptMessages, setTranscriptMessages] = useState<Message[]>([]);
-  const [gooeyResponse, setGooeyResponse] = useState<GooeyVideoResponse | null>(null); // Add this line
+  const [gooeyResponse, setGooeyResponse] = useState<GooeyVideoResponse | null>(null);
 
-  const transcriptRef = useRef<HTMLDivElement>(null);
   const currentConversationRef = useRef<string>(conversationId);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const pendingTranscriptRef = useRef<string>('');
@@ -162,13 +162,14 @@ const [isProcessingAttachments, setIsProcessingAttachments] = useState(false);
     setVideoState('idle');
     setCurrentCaption('');
     setCurrentVideoUrl(null);
-    setGooeyResponse(null); // Clear gooey response
+    setGooeyResponse(null);
     setSettings(DEFAULT_CONVERSATION_SETTINGS);
     setTranscriptMessages([]);
 
     const unsubscribeMessages = subscribeToMessages(conversationId, (msgs) => {
       if (currentConversationRef.current === conversationId) {
         setMessages(msgs);
+        setTranscriptMessages(msgs);
       }
     });
 
@@ -185,12 +186,6 @@ const [isProcessingAttachments, setIsProcessingAttachments] = useState(false);
     };
   }, [conversationId]);
 
-  useEffect(() => {
-    if (transcriptRef.current) {
-      transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
-    }
-  }, [transcriptMessages]);
-
   const handleSendWithText = useCallback(async (text: string) => {
     if (!text.trim() || videoState === 'thinking' || videoState === 'speaking') return;
 
@@ -202,7 +197,7 @@ const [isProcessingAttachments, setIsProcessingAttachments] = useState(false);
     setInput('');
     setVideoState('thinking');
     setCurrentVideoUrl(null);
-    setGooeyResponse(null); // Clear previous response
+    setGooeyResponse(null);
 
     try {
       await addMessage({
@@ -212,40 +207,28 @@ const [isProcessingAttachments, setIsProcessingAttachments] = useState(false);
         createdAt: new Date()
       });
 
-const enhancedUserMessage = attachmentContext
-  ? `Attached content context:\n${attachmentContext}\n\nUser query:\n${userMessage}`
-  : userMessage;
+      const enhancedUserMessage = attachmentContext
+        ? `Attached content context:\n${attachmentContext}\n\nUser query:\n${userMessage}`
+        : userMessage;
 
-const responseText = await generateAIResponse(
-  enhancedUserMessage,
-  currentSettings,
-  conversationHistory
-);
-
-      if (currentConversationRef.current !== targetConversationId) {
-        return;
-      }
-
-      await addMessage({
-        conversationId: targetConversationId,
-        sender: 'ai',
-        text: responseText,
-        createdAt: new Date()
-      });
+      const responseText = await generateAIResponse(
+        enhancedUserMessage,
+        currentSettings,
+        conversationHistory
+      );
 
       if (currentConversationRef.current !== targetConversationId) {
         return;
       }
 
       setCurrentCaption(responseText);
-      
+
       function prepareTextForVideo(text: string): string {
         const cleaned = text
           .replace(/\s+/g, ' ')
           .replace(/\n/g, ' ')
           .trim();
 
-        // Ensure sentence completion
         if (!/[.!?।]$/.test(cleaned)) {
           return cleaned + '।';
         }
@@ -262,30 +245,32 @@ const responseText = await generateAIResponse(
         gender: currentSettings.avatarVoiceGender
       });
 
-      setGooeyResponse(gooeyResponseResult); // Store the response
+      setGooeyResponse(gooeyResponseResult);
 
       if (currentConversationRef.current !== targetConversationId) {
         return;
       }
-setAttachments([]);
-setAttachmentContext('');
 
-      setTranscriptMessages((prev) => [...prev,
-        { conversationId: targetConversationId, sender: 'user', text: userMessage, createdAt: new Date() },
-        { conversationId: targetConversationId, sender: 'ai', text: responseText, createdAt: new Date() }
-      ]);
+      await addMessage({
+        conversationId: targetConversationId,
+        sender: 'ai',
+        text: responseText,
+        transcript: responseText,
+        videoUrl: gooeyResponseResult.videoUrl,
+        videoUrls: gooeyResponseResult.videoUrls,
+        createdAt: new Date()
+      });
+
+      setAttachments([]);
+      setAttachmentContext('');
 
       if (gooeyResponseResult.success) {
         if (gooeyResponseResult.videoUrls && gooeyResponseResult.videoUrls.length > 0) {
-          // Multiple video chunks - pass them to VideoPlayer
           setVideoState('speaking');
-          // VideoPlayer will handle playing them sequentially
         } else if (gooeyResponseResult.videoUrl) {
-          // Single video (backward compatibility)
           setCurrentVideoUrl(gooeyResponseResult.videoUrl);
           setVideoState('speaking');
         } else {
-          // No video URL - fallback to TTS
           setVideoState('speaking');
           await speakText(
             responseText,
@@ -302,7 +287,6 @@ setAttachmentContext('');
           );
         }
       } else {
-        // Gooey failed - fallback to TTS
         setVideoState('speaking');
         await speakText(
           responseText,
@@ -326,7 +310,7 @@ setAttachmentContext('');
       setCurrentVideoUrl(null);
       setGooeyResponse(null);
     }
-  }, [videoState, settings]);
+  }, [videoState, settings, attachmentContext]);
 
   async function handleSend() {
     await handleSendWithText(input);
@@ -337,7 +321,7 @@ setAttachmentContext('');
       setVideoState('idle');
       setCurrentCaption('');
       setCurrentVideoUrl(null);
-      setGooeyResponse(null); // Clear the response
+      setGooeyResponse(null);
     }, 700);
   }
 
@@ -374,159 +358,114 @@ setAttachmentContext('');
       }
     }
   }
+
   function removeAttachment(index: number) {
-  setAttachments(prev => prev.filter((_, i) => i !== index));
-
-  setAttachmentContext(prev => {
-    // Conservative: wipe all context if user removes any file
-    // (simplest + safest)
-    return '';
-  });
-}
-
-async function handleAttachmentSelect(
-  e: React.ChangeEvent<HTMLInputElement>
-) {
-  const files = Array.from(e.target.files || []);
-
-  if (files.length === 0) return;
-
-  if (files.length + attachments.length > 5) {
-    alert('You can upload a maximum of 5 attachments.');
-    return;
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+    setAttachmentContext('');
   }
 
-  for (const file of files) {
-    if (file.size > 5 * 1024 * 1024) {
-      alert(`${file.name} exceeds 5MB limit`);
+  async function handleAttachmentSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+
+    if (files.length === 0) return;
+
+    if (files.length + attachments.length > 5) {
+      alert('You can upload a maximum of 5 attachments.');
       return;
     }
-  }
-
-  setAttachments(prev => [...prev, ...files]);
-
-  await processAttachments(files);
-
-  e.target.value = '';
-}
-async function processAttachments(files: File[]) {
-  setIsProcessingAttachments(true);
-
-  try {
-    const extractedResults: string[] = [];
 
     for (const file of files) {
-      const base64 = await fileToBase64(file);
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`${file.name} exceeds 5MB limit`);
+        return;
+      }
+    }
 
-      const result = await extractAttachmentWithGemini(
-        file.type,
-        base64
+    setAttachments(prev => [...prev, ...files]);
+    await processAttachments(files);
+    e.target.value = '';
+  }
+
+  async function processAttachments(files: File[]) {
+    setIsProcessingAttachments(true);
+
+    try {
+      const extractedResults: string[] = [];
+
+      for (const file of files) {
+        const base64 = await fileToBase64(file);
+        const result = await extractAttachmentWithGemini(file.type, base64);
+        extractedResults.push(result);
+      }
+
+      const combinedContext = extractedResults.join('\n\n');
+      setAttachmentContext(prev =>
+        prev ? `${prev}\n\n${combinedContext}` : combinedContext
       );
 
-    console.log(`📎 Extracted from ${file.name} (length=${result.length})`);
-console.log(result);
-
-
-      extractedResults.push(result);
+    } catch (err) {
+      console.error('Attachment extraction failed:', err);
+    } finally {
+      setIsProcessingAttachments(false);
     }
+  }
 
-    const combinedContext = extractedResults.join('\n\n');
+  async function extractAttachmentWithGemini(mimeType: string, base64Data: string): Promise<string> {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-    setAttachmentContext(prev =>
-      prev
-        ? `${prev}\n\n${combinedContext}`
-        : combinedContext
+    const body = {
+      contents: [
+        {
+          parts: [
+            {
+              text: `You are a document analysis and information extraction assistant. Extract ALL meaningful information from the attached file.`
+            },
+            {
+              inlineData: {
+                mimeType,
+                data: base64Data
+              }
+            }
+          ]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.2,
+        topK: 32,
+        topP: 0.9,
+        maxOutputTokens: 4096
+      }
+    };
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      }
     );
 
-  } catch (err) {
-    console.error('Attachment extraction failed:', err);
-  } finally {
-    setIsProcessingAttachments(false);
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No extractable content found.';
   }
-}
 
-async function extractAttachmentWithGemini(
-  mimeType: string,
-  base64Data: string
-): Promise<string> {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
- 
-
- const body = {
-  contents: [
-    {
-      parts: [
-        {
-          text: `
-You are a document analysis and information extraction assistant.
-
-TASK:
-Extract ALL meaningful information from the attached file.
-
-RULES:
-- Do NOT summarize unless explicitly asked
-- Preserve structure where possible
-- Extract names, roles, organizations, timelines, facts, bullet points, tables (as text)
-- If the document contains multiple sections or profiles, extract EACH ONE fully
-- Be exhaustive and detailed
-- Do NOT stop early
-- Do NOT omit content for brevity
-`
-        },
-        {
-          inlineData: {
-            mimeType,
-            data: base64Data
-          }
-        }
-      ]
-    }
-  ],
-  generationConfig: {
-    temperature: 0.2,
-    topK: 32,
-    topP: 0.9,
-    maxOutputTokens: 4096   // 🔴 THIS IS THE BIG FIX
+  function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string).split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
-};
-
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    }
-  );
-
-  const data = await res.json();
-
-  return (
-    data.candidates?.[0]?.content?.parts?.[0]?.text ||
-    'No extractable content found.'
-  );
-}
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () =>
-      resolve((reader.result as string).split(',')[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
 
   function sanitizeSettings(settings: ConversationSettings): ConversationSettings {
     const cleaned = { ...settings };
-
     Object.keys(cleaned).forEach((key) => {
       if ((cleaned as any)[key] === undefined) {
         delete (cleaned as any)[key];
       }
     });
-
     return cleaned;
   }
 
@@ -541,27 +480,21 @@ function fileToBase64(file: File): Promise<string> {
     }
   }
 
+  function handlePlayMessage(videoUrl: string | undefined, videoUrls: string[] | undefined, transcript: string) {
+    setCurrentCaption(transcript);
+    setCurrentVideoUrl(videoUrl || null);
+    setGooeyResponse(videoUrls ? { success: true, videoUrls } : null);
+    setVideoState('speaking');
+  }
+
   const isBusy = videoState === 'thinking' || videoState === 'speaking';
 
   return (
     <div className="flex-1 flex flex-col h-full bg-gradient-to-b from-gray-50 to-gray-100">
-      <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200">
-        <div className="flex items-center gap-3">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-sm font-medium text-gray-700">Video Call Active</span>
-          {settings.language === 'hi' && (
-            <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">Hindi</span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowSettings(true)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
+      <ChatHeader
+        settings={settings}
+        onSettingsClick={() => setShowSettings(true)}
+      />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-shrink-0 p-6 pb-4">
@@ -569,160 +502,33 @@ function fileToBase64(file: File): Promise<string> {
             <VideoPlayer
               state={videoState}
               avatarImageUrl={settings.avatarPreviewImageUrl}
-              speakingVideoUrl={currentVideoUrl} // For backward compatibility
-              speakingVideoUrls={gooeyResponse?.videoUrls} // Pass array of video chunks
+              speakingVideoUrl={currentVideoUrl}
+              speakingVideoUrls={gooeyResponse?.videoUrls}
               caption={currentCaption}
               onVideoEnded={handleVideoEnded}
             />
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 px-6">
-          <div className="max-w-2xl mx-auto h-full flex flex-col">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Transcript</span>
-              <span className="text-xs text-gray-400">{transcriptMessages.length} messages</span>
-            </div>
+        <TranscriptView
+          messages={transcriptMessages}
+          onPlayMessage={handlePlayMessage}
+        />
 
-            <div
-              ref={transcriptRef}
-              className="flex-1 overflow-y-auto bg-white rounded-xl border border-gray-200 shadow-sm"
-            >
-              {transcriptMessages.length === 0 ? (
-                <div className="flex items-center justify-center h-full p-6">
-                  <p className="text-sm text-gray-400 text-center">
-                    Start speaking or type a message to begin the conversation
-                  </p>
-                </div>
-              ) : (
-                <div className="p-4 space-y-3">
-                  {transcriptMessages.map((msg, index) => (
-                    <div
-                      key={index}
-                      className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[85%] px-4 py-2.5 rounded-2xl ${
-                          msg.sender === 'user'
-                            ? 'bg-gray-900 text-white rounded-br-md'
-                            : 'bg-gray-100 text-gray-900 rounded-bl-md'
-                        }`}
-                      >
-                        <p className="text-sm leading-relaxed">{msg.text}</p>
-                        <p className={`text-xs mt-1 ${
-                          msg.sender === 'user' ? 'text-gray-400' : 'text-gray-500'
-                        }`}>
-                          {msg.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex-shrink-0 p-6 pt-4">
-          <div className="max-w-2xl mx-auto">
-            {speechError && (
-              <div className="mb-3 px-4 py-2 bg-red-50 border border-red-100 rounded-xl">
-                <p className="text-xs text-red-600">{speechError}</p>
-              </div>
-            )}
-
-            <div className="flex items-center gap-3 bg-white rounded-2xl border border-gray-200 shadow-sm p-2">
-              <button
-                onClick={toggleListening}
-                disabled={isBusy}
-                className={`flex-shrink-0 p-4 rounded-xl transition-all ${
-                  isListening
-                    ? 'bg-red-500 text-white shadow-lg shadow-red-500/30 scale-110'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-                title={isListening ? 'Stop listening' : 'Start voice input'}
-              >
-                {isListening ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
-              </button>
-<input
-  id="attachment-input"
-  type="file"
-  multiple
-  accept="image/*,application/pdf,video/*,audio/*"
-  hidden
-  onChange={handleAttachmentSelect}
-/>
-{attachments.length > 0 && (
-  <div className="mb-2 flex flex-wrap gap-2">
-    {attachments.map((file, index) => (
-      <div
-        key={index}
-        className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 border border-gray-200 rounded-full text-xs"
-      >
-        <span className="truncate max-w-[120px]">
-          {file.name}
-        </span>
-
-        {isProcessingAttachments && (
-          <span className="text-gray-400">processing…</span>
-        )}
-
-        <button
-          onClick={() => removeAttachment(index)}
-          className="text-gray-400 hover:text-red-500"
-        >
-          ✕
-        </button>
-      </div>
-    ))}
-  </div>
-)}
-
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-placeholder={
-  isListening
-    ? 'Listening...'
-    : attachments.length > 0
-    ? `Message (${attachments.length} attachment${attachments.length > 1 ? 's' : ''})`
-    : 'Or type your message...'
-}
-                disabled={isBusy || isListening}
-                className="flex-1 px-4 py-3 bg-transparent text-gray-900 placeholder-gray-400 focus:outline-none disabled:opacity-50"
-              />
-<button
-  onClick={() => document.getElementById('attachment-input')?.click()}
-  disabled={isBusy || isProcessingAttachments}
-  className="p-3 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
-  title="Add attachment"
->
-  <Paperclip className="w-5 h-5" />
-</button>
-
-              <button
-                onClick={handleSend}
-disabled={
-  !input.trim() ||
-  isBusy ||
-  isListening ||
-  isProcessingAttachments
-}
-                className="flex-shrink-0 p-4 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Send className="w-5 h-5" />
-              </button>
-            </div>
-
-            <p className="mt-3 text-xs text-gray-400 text-center">
-              {isListening
-                ? 'Speak now... your message will be sent automatically'
-                : 'Press the microphone to speak or type your message'}
-            </p>
-          </div>
-        </div>
+        <MessageInput
+          input={input}
+          onInputChange={setInput}
+          onSend={handleSend}
+          onKeyDown={handleKeyDown}
+          isListening={isListening}
+          onToggleListening={toggleListening}
+          isBusy={isBusy}
+          speechError={speechError}
+          attachments={attachments}
+          onAttachmentSelect={handleAttachmentSelect}
+          onRemoveAttachment={removeAttachment}
+          isProcessingAttachments={isProcessingAttachments}
+        />
       </div>
 
       {showSettings && (

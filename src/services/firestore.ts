@@ -10,10 +10,11 @@ import {
   orderBy,
   Timestamp,
   deleteDoc,
-  onSnapshot
+  onSnapshot,
+  arrayUnion
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Conversation, Message, ConversationSettings, DEFAULT_CONVERSATION_SETTINGS } from '../types';
+import { Conversation, Message, ConversationSettings, DEFAULT_CONVERSATION_SETTINGS, Company, CompanyDocument } from '../types';
 
 export async function createConversation(userId: string, title: string): Promise<string> {
   const conversationsRef = collection(db, 'conversations');
@@ -135,9 +136,138 @@ export function subscribeToMessages(
       conversationId: doc.data().conversationId,
       sender: doc.data().sender,
       text: doc.data().text,
+      transcript: doc.data().transcript,
       videoUrl: doc.data().videoUrl,
+      videoUrls: doc.data().videoUrls,
       createdAt: doc.data().createdAt.toDate()
     }));
     callback(messages);
+  });
+}
+
+export async function createCompany(userId: string, name: string): Promise<string> {
+  const companiesRef = collection(db, 'companies');
+  const docRef = await addDoc(companiesRef, {
+    name,
+    createdBy: userId,
+    createdAt: Timestamp.now(),
+    members: [userId],
+    settings: DEFAULT_CONVERSATION_SETTINGS
+  });
+  return docRef.id;
+}
+
+export function subscribeToUserCompanies(
+  userId: string,
+  callback: (companies: Company[]) => void
+): () => void {
+  const companiesRef = collection(db, 'companies');
+  const q = query(
+    companiesRef,
+    where('members', 'array-contains', userId),
+    orderBy('createdAt', 'desc')
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const companies = snapshot.docs.map(doc => ({
+      id: doc.id,
+      name: doc.data().name,
+      createdBy: doc.data().createdBy,
+      createdAt: doc.data().createdAt.toDate(),
+      members: doc.data().members,
+      settings: doc.data().settings || DEFAULT_CONVERSATION_SETTINGS
+    }));
+    callback(companies);
+  });
+}
+
+export async function addCompanyMember(companyId: string, memberEmail: string): Promise<void> {
+  const companyRef = doc(db, 'companies', companyId);
+  await updateDoc(companyRef, {
+    members: arrayUnion(memberEmail)
+  });
+}
+
+export async function updateCompanySettings(
+  companyId: string,
+  settings: ConversationSettings
+): Promise<void> {
+  const companyRef = doc(db, 'companies', companyId);
+  await updateDoc(companyRef, { settings });
+}
+
+export async function addCompanyDocument(document: Omit<CompanyDocument, 'id'>): Promise<string> {
+  const documentsRef = collection(db, 'company_documents');
+  const docRef = await addDoc(documentsRef, {
+    ...document,
+    createdAt: Timestamp.now()
+  });
+  return docRef.id;
+}
+
+export function subscribeToCompanyDocuments(
+  companyId: string,
+  callback: (documents: CompanyDocument[]) => void
+): () => void {
+  const documentsRef = collection(db, 'company_documents');
+  const q = query(
+    documentsRef,
+    where('companyId', '==', companyId),
+    orderBy('createdAt', 'desc')
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const documents = snapshot.docs.map(doc => ({
+      id: doc.id,
+      companyId: doc.data().companyId,
+      title: doc.data().title,
+      content: doc.data().content,
+      uploadedBy: doc.data().uploadedBy,
+      createdAt: doc.data().createdAt.toDate()
+    }));
+    callback(documents);
+  });
+}
+
+export async function getCompany(companyId: string): Promise<Company | null> {
+  const docRef = doc(db, 'companies', companyId);
+  const docSnap = await getDoc(docRef);
+
+  if (!docSnap.exists()) {
+    return null;
+  }
+
+  const data = docSnap.data();
+  return {
+    id: docSnap.id,
+    name: data.name,
+    createdBy: data.createdBy,
+    createdAt: data.createdAt.toDate(),
+    members: data.members,
+    settings: data.settings || DEFAULT_CONVERSATION_SETTINGS
+  };
+}
+
+export function subscribeToCompany(
+  companyId: string,
+  callback: (company: Company | null) => void
+): () => void {
+  const docRef = doc(db, 'companies', companyId);
+
+  return onSnapshot(docRef, (docSnap) => {
+    if (!docSnap.exists()) {
+      callback(null);
+      return;
+    }
+
+    const data = docSnap.data();
+    callback({
+      id: docSnap.id,
+      name: data.name,
+      createdBy: data.createdBy,
+      createdAt: data.createdAt.toDate(),
+      members: data.members,
+      settings: data.settings || DEFAULT_CONVERSATION_SETTINGS
+    });
   });
 }

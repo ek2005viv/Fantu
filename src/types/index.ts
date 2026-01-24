@@ -64,10 +64,41 @@ export interface Message {
   text: string;
 
   /**
-   * Final Gooey-generated talking video URL
+   * Final Gooey-generated talking video URL (backward compatibility)
    */
   videoUrl?: string;
 
+  /**
+   * Array of video chunk URLs for long responses
+   */
+  videoUrls?: string[];
+
+  /**
+   * Transcript text (same as text for now, but kept for clarity)
+   */
+  transcript?: string;
+
+  createdAt: Date;
+}
+
+// ==========================
+// COMPANY
+// ==========================
+export interface Company {
+  id?: string;
+  name: string;
+  createdBy: string;
+  createdAt: Date;
+  members: string[];
+  settings?: ConversationSettings;
+}
+
+export interface CompanyDocument {
+  id?: string;
+  companyId: string;
+  title: string;
+  content: string;
+  uploadedBy: string;
   createdAt: Date;
 }
 

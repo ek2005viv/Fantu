@@ -1,22 +1,32 @@
-import { Video, Plus, LogOut, MessageSquare, Trash2, Loader2 } from 'lucide-react';
+import { Video, Plus, LogOut, MessageSquare, Trash2, Loader2, Building2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { deleteConversation } from '../services/firestore';
-import { Conversation } from '../types';
+import { Conversation, Company } from '../types';
 
 interface SidebarProps {
   conversations: Conversation[];
+  companies: Company[];
   activeConversationId: string | null;
+  activeCompanyId: string | null;
   onSelectConversation: (id: string | null) => void;
+  onSelectCompany: (id: string | null) => void;
   onNewChat: () => void;
+  onNewCompany: () => void;
   creatingChat: boolean;
+  creatingCompany: boolean;
 }
 
 export default function Sidebar({
   conversations,
+  companies,
   activeConversationId,
+  activeCompanyId,
   onSelectConversation,
+  onSelectCompany,
   onNewChat,
-  creatingChat
+  onNewCompany,
+  creatingChat,
+  creatingCompany
 }: SidebarProps) {
   const { currentUser, logout } = useAuth();
 
@@ -49,50 +59,105 @@ export default function Sidebar({
           <span className="text-lg font-bold text-gray-900">Persona Video AI</span>
         </div>
 
-        <button
-          onClick={onNewChat}
-          disabled={creatingChat}
-          className="w-full py-2.5 px-4 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-        >
-          {creatingChat ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Plus className="w-4 h-4" />
-          )}
-          New Chat
-        </button>
+        <div className="space-y-2">
+          <button
+            onClick={onNewChat}
+            disabled={creatingChat}
+            className="w-full py-2.5 px-4 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {creatingChat ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Plus className="w-4 h-4" />
+            )}
+            New Chat
+          </button>
+
+          <button
+            onClick={onNewCompany}
+            disabled={creatingCompany}
+            className="w-full py-2.5 px-4 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {creatingCompany ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Building2 className="w-4 h-4" />
+            )}
+            Add Company
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3">
-        {conversations.length === 0 ? (
-          <div className="text-center py-8">
-            <MessageSquare className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">No conversations yet</p>
+        <div className="mb-4">
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 px-2">
+            Chats
           </div>
-        ) : (
-          <div className="space-y-1">
-            {conversations.map((conv) => (
-              <div
-                key={conv.id}
-                onClick={() => onSelectConversation(conv.id)}
-                className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
-                  activeConversationId === conv.id
-                    ? 'bg-gray-200 text-gray-900'
-                    : 'hover:bg-gray-100 text-gray-700'
-                }`}
-              >
-                <MessageSquare className="w-4 h-4 flex-shrink-0" />
-                <span className="flex-1 truncate text-sm">{conv.title}</span>
-                <button
-                  onClick={(e) => handleDelete(e, conv.id)}
-                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-300 rounded transition-all"
+          {conversations.length === 0 ? (
+            <div className="text-center py-4">
+              <MessageSquare className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+              <p className="text-xs text-gray-500">No chats yet</p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {conversations.map((conv) => (
+                <div
+                  key={conv.id}
+                  onClick={() => {
+                    onSelectConversation(conv.id);
+                    onSelectCompany(null);
+                  }}
+                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
+                    activeConversationId === conv.id && !activeCompanyId
+                      ? 'bg-gray-200 text-gray-900'
+                      : 'hover:bg-gray-100 text-gray-700'
+                  }`}
                 >
-                  <Trash2 className="w-3.5 h-3.5 text-gray-500" />
-                </button>
-              </div>
-            ))}
+                  <MessageSquare className="w-4 h-4 flex-shrink-0" />
+                  <span className="flex-1 truncate text-sm">{conv.title}</span>
+                  <button
+                    onClick={(e) => handleDelete(e, conv.id)}
+                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-300 rounded transition-all"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-gray-500" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 px-2">
+            Companies
           </div>
-        )}
+          {companies.length === 0 ? (
+            <div className="text-center py-4">
+              <Building2 className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+              <p className="text-xs text-gray-500">No companies yet</p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {companies.map((company) => (
+                <div
+                  key={company.id}
+                  onClick={() => {
+                    onSelectCompany(company.id!);
+                    onSelectConversation(null);
+                  }}
+                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
+                    activeCompanyId === company.id
+                      ? 'bg-gray-200 text-gray-900'
+                      : 'hover:bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  <Building2 className="w-4 h-4 flex-shrink-0" />
+                  <span className="flex-1 truncate text-sm">{company.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="p-4 border-t border-gray-200">
