@@ -12,6 +12,7 @@ import { subscribeToMessages, addMessage, subscribeToCompany, updateCompanySetti
 import { generateAIResponse } from '../services/mockAI';
 import { generateAvatarVideo, GooeyVideoResponse } from '../services/gooey';
 import { speakText, stopSpeaking } from '../services/tts';
+import { queryDocuments, upsertDocuments } from '../services/pinecone';
 import AvatarSettingsPanel from './AvatarSettingsPanel';
 import VideoPlayer, { VideoState } from './VideoPlayer';
 import ChatHeader from './ChatHeader';
@@ -91,9 +92,22 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
         createdAt: new Date()
       });
 
-      const documentContext = companyDocuments.length > 0
-        ? `\n\nCompany Documents:\n${companyDocuments.map(doc => `${doc.title}:\n${doc.content}`).join('\n\n')}`
-        : '';
+      let documentContext = '';
+      try {
+        const relevantDocs = await queryDocuments(companyId, userMessage, 3);
+        if (relevantDocs.length > 0) {
+          documentContext = `\n\nRelevant Company Documents (from vector search):\n${relevantDocs.map((doc, i) =>
+            `[Document ${i + 1} - Relevance: ${(doc.score * 100).toFixed(1)}%]\n${doc.text}`
+          ).join('\n\n')}`;
+        }
+      } catch (error) {
+        console.error('Pinecone query error:', error);
+        if (companyDocuments.length > 0) {
+          documentContext = `\n\nCompany Documents:\n${companyDocuments.map(doc =>
+            `${doc.title}:\n${doc.content}`
+          ).join('\n\n')}`;
+        }
+      }
 
       const enhancedUserMessage = attachmentContext
         ? `${documentContext}\n\nAttached content context:\n${attachmentContext}\n\nUser query:\n${userMessage}`
@@ -289,6 +303,8 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
   async function handleDocumentUpload() {
     if (!documentTitle.trim() || !documentContent.trim()) return;
     try {
+      const docId = `${companyId}_${Date.now()}`;
+
       await addCompanyDocument({
         companyId,
         title: documentTitle.trim(),
@@ -296,10 +312,28 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
         uploadedBy: 'current-user',
         createdAt: new Date()
       });
+
+      try {
+        await upsertDocuments(companyId, [
+          {
+            id: docId,
+            text: `${documentTitle.trim()}\n\n${documentContent.trim()}`,
+            metadata: {
+              title: documentTitle.trim(),
+              uploadedBy: 'current-user',
+              uploadedAt: new Date().toISOString()
+            }
+          }
+        ]);
+        console.log('Document indexed to Pinecone successfully');
+      } catch (pineconeError) {
+        console.error('Failed to index to Pinecone:', pineconeError);
+      }
+
       setDocumentTitle('');
       setDocumentContent('');
       setShowDocumentUpload(false);
-      alert('Document added successfully');
+      alert('Document added and indexed successfully');
     } catch (error) {
       console.error('Failed to upload document:', error);
       alert('Failed to upload document');
@@ -332,7 +366,7 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
       </div>
 
       <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-        <div className="flex-shrink-0 p-3 sm:p-4 md:p-6 pb-2 md:pb-4 overflow-auto" style={{ height: `${100 - transcriptHeight}%`, minHeight: '180px' }}>
+        <div className="flex-1 p-3 sm:p-4 md:p-6 pb-2 md:pb-4 overflow-auto min-h-0">
           <div className="max-w-full md:max-w-2xl mx-auto h-full flex items-center justify-center">
             <div className="w-full px-2 sm:px-0">
               <VideoPlayer
@@ -347,7 +381,7 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
           </div>
         </div>
 
-        <div className="flex-shrink-0 overflow-hidden">
+        <div className="flex-shrink-0 overflow-hidden" style={{ maxHeight: '40vh' }}>
           <TranscriptView
             messages={messages}
             onPlayMessage={handlePlayMessage}
@@ -356,7 +390,7 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
           />
         </div>
 
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 border-t border-gray-200">
           <MessageInput
             input={input}
             onInputChange={setInput}

@@ -517,7 +517,7 @@ export default function ChatView({ conversationId }: ChatViewProps) {
       />
 
       <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-        <div className="flex-shrink-0 p-3 sm:p-4 md:p-6 pb-2 md:pb-4 overflow-auto" style={{ height: `${100 - transcriptHeight}%`, minHeight: '180px' }}>
+        <div className="flex-1 p-3 sm:p-4 md:p-6 pb-2 md:pb-4 overflow-auto min-h-0">
           <div className="max-w-full md:max-w-2xl mx-auto h-full flex items-center justify-center">
             <div className="w-full px-2 sm:px-0">
               <VideoPlayer
@@ -532,7 +532,7 @@ export default function ChatView({ conversationId }: ChatViewProps) {
           </div>
         </div>
 
-        <div className="flex-shrink-0 overflow-hidden">
+        <div className="flex-shrink-0 overflow-hidden" style={{ maxHeight: '40vh' }}>
           <TranscriptView
             messages={transcriptMessages}
             onPlayMessage={handlePlayMessage}
@@ -541,7 +541,7 @@ export default function ChatView({ conversationId }: ChatViewProps) {
           />
         </div>
 
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 border-t border-gray-200">
           <MessageInput
             input={input}
             onInputChange={setInput}
