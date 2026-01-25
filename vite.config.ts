@@ -10,4 +10,12 @@ export default defineConfig({
   define: {
     'global': 'globalThis',
   },
+  build: {
+    rollupOptions: {
+      external: [/^node:/]
+    }
+  },
+  worker: {
+    format: 'es'
+  }
 });
