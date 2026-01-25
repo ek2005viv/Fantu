@@ -510,16 +510,16 @@ export default function ChatView({ conversationId }: ChatViewProps) {
   const isBusy = videoState === 'thinking' || videoState === 'speaking';
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-gradient-to-b from-gray-50 to-gray-100">
+    <div className="flex-1 flex flex-col h-full bg-gradient-to-br from-gray-50 via-white to-gray-50 overflow-hidden">
       <ChatHeader
         settings={settings}
         onSettingsClick={() => setShowSettings(true)}
       />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-shrink-0 p-6 pb-4" style={{ height: `${100 - transcriptHeight}%` }}>
-          <div className="max-w-2xl mx-auto h-full flex items-center">
-            <div className="w-full">
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+        <div className="flex-shrink-0 p-3 sm:p-4 md:p-6 pb-2 md:pb-4 overflow-auto" style={{ height: `${100 - transcriptHeight}%`, minHeight: '180px' }}>
+          <div className="max-w-full md:max-w-2xl mx-auto h-full flex items-center justify-center">
+            <div className="w-full px-2 sm:px-0">
               <VideoPlayer
                 state={videoState}
                 avatarImageUrl={settings.avatarPreviewImageUrl}
@@ -532,27 +532,31 @@ export default function ChatView({ conversationId }: ChatViewProps) {
           </div>
         </div>
 
-        <TranscriptView
-          messages={transcriptMessages}
-          onPlayMessage={handlePlayMessage}
-          transcriptHeight={transcriptHeight}
-          onHeightChange={setTranscriptHeight}
-        />
+        <div className="flex-shrink-0 overflow-hidden">
+          <TranscriptView
+            messages={transcriptMessages}
+            onPlayMessage={handlePlayMessage}
+            transcriptHeight={transcriptHeight}
+            onHeightChange={setTranscriptHeight}
+          />
+        </div>
 
-        <MessageInput
-          input={input}
-          onInputChange={setInput}
-          onSend={handleSend}
-          onKeyDown={handleKeyDown}
-          isListening={isListening}
-          onToggleListening={toggleListening}
-          isBusy={isBusy}
-          speechError={speechError}
-          attachments={attachments}
-          onAttachmentSelect={handleAttachmentSelect}
-          onRemoveAttachment={removeAttachment}
-          isProcessingAttachments={isProcessingAttachments}
-        />
+        <div className="flex-shrink-0">
+          <MessageInput
+            input={input}
+            onInputChange={setInput}
+            onSend={handleSend}
+            onKeyDown={handleKeyDown}
+            isListening={isListening}
+            onToggleListening={toggleListening}
+            isBusy={isBusy}
+            speechError={speechError}
+            attachments={attachments}
+            onAttachmentSelect={handleAttachmentSelect}
+            onRemoveAttachment={removeAttachment}
+            isProcessingAttachments={isProcessingAttachments}
+          />
+        </div>
       </div>
 
       {showSettings && (

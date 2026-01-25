@@ -80,18 +80,23 @@ export default function Sidebar({
   }
 
   return (
-    <div className="w-72 bg-gray-50 border-r border-gray-200 flex flex-col h-full">
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center gap-2 mb-4">
-          <Video className="w-7 h-7 text-gray-800" />
-          <span className="text-lg font-bold text-gray-900">Persona Video AI</span>
+    <div className="w-72 bg-gradient-to-b from-gray-50 to-white border-r border-gray-200 flex flex-col h-full shadow-lg">
+      <div className="p-4 border-b border-gray-200 bg-white">
+        <div className="flex items-center gap-2 mb-4 animate-slide-in">
+          <div className="relative">
+            <Video className="w-7 h-7 text-gray-900" />
+            <div className="absolute inset-0 bg-gray-900/20 rounded-full blur-md"></div>
+          </div>
+          <span className="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-700 text-gradient">
+            Persona Video AI
+          </span>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           <button
             onClick={onNewChat}
             disabled={creatingChat}
-            className="w-full py-2.5 px-4 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full py-3 px-4 bg-gray-900 text-white rounded-xl hover:bg-gray-800 hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] ripple font-medium"
           >
             {creatingChat ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -104,7 +109,7 @@ export default function Sidebar({
           <button
             onClick={onNewCompany}
             disabled={creatingCompany}
-            className="w-full py-2.5 px-4 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full py-3 px-4 bg-white border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 hover:border-gray-400 hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] ripple font-medium"
           >
             {creatingCompany ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -116,9 +121,9 @@ export default function Sidebar({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3">
-        <div className="mb-4">
-          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 px-2">
+      <div className="flex-1 overflow-y-auto p-3 scrollbar-thin">
+        <div className="mb-5">
+          <div className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-3 px-2">
             Chats
           </div>
           {conversations.length === 0 ? (
@@ -135,10 +140,10 @@ export default function Sidebar({
                     onSelectConversation(conv.id);
                     onSelectCompany(null);
                   }}
-                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
+                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-300 ${
                     activeConversationId === conv.id && !activeCompanyId
-                      ? 'bg-gray-200 text-gray-900'
-                      : 'hover:bg-gray-100 text-gray-700'
+                      ? 'bg-gradient-to-r from-gray-200 to-gray-100 text-gray-900 shadow-sm'
+                      : 'hover:bg-gray-100 text-gray-700 hover:translate-x-1'
                   }`}
                 >
                   <MessageSquare className="w-4 h-4 flex-shrink-0" />
@@ -166,7 +171,7 @@ export default function Sidebar({
         </div>
 
         <div>
-          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 px-2">
+          <div className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-3 px-2">
             Companies
           </div>
           {companies.length === 0 ? (
@@ -183,10 +188,10 @@ export default function Sidebar({
                     onSelectCompany(company.id!);
                     onSelectConversation(null);
                   }}
-                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
+                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-300 ${
                     activeCompanyId === company.id
-                      ? 'bg-gray-200 text-gray-900'
-                      : 'hover:bg-gray-100 text-gray-700'
+                      ? 'bg-gradient-to-r from-gray-200 to-gray-100 text-gray-900 shadow-sm'
+                      : 'hover:bg-gray-100 text-gray-700 hover:translate-x-1'
                   }`}
                 >
                   <Building2 className="w-4 h-4 flex-shrink-0" />
@@ -205,13 +210,13 @@ export default function Sidebar({
         </div>
       </div>
 
-      <div className="p-4 border-t border-gray-200">
-        <div className="text-xs text-gray-500 mb-3 truncate">
+      <div className="p-4 border-t border-gray-200 bg-white">
+        <div className="text-xs text-gray-600 mb-3 truncate font-medium px-2">
           {currentUser?.email}
         </div>
         <button
           onClick={handleLogout}
-          className="w-full py-2 px-4 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
+          className="w-full py-2.5 px-4 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-sm font-medium hover:scale-[1.02] ripple"
         >
           <LogOut className="w-4 h-4" />
           Logout

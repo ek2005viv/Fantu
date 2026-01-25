@@ -41,6 +41,7 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
   const [inviteEmail, setInviteEmail] = useState('');
   const [documentTitle, setDocumentTitle] = useState('');
   const [documentContent, setDocumentContent] = useState('');
+  const [transcriptHeight, setTranscriptHeight] = useState(40);
 
   useEffect(() => {
     stopSpeaking();
@@ -308,7 +309,7 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
   const isBusy = videoState === 'thinking' || videoState === 'speaking';
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-gradient-to-b from-gray-50 to-gray-100">
+    <div className="flex-1 flex flex-col h-full bg-gradient-to-br from-gray-50 via-white to-gray-50 overflow-hidden">
       <ChatHeader
         settings={settings}
         onSettingsClick={() => setShowSettings(true)}
@@ -316,52 +317,61 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
         showInviteButton={true}
       />
 
-      <div className="px-6 py-2 bg-white border-b border-gray-200">
+      <div className="px-3 sm:px-4 md:px-6 py-2 bg-white border-b border-gray-200 flex-shrink-0">
         <button
           onClick={() => setShowDocumentUpload(true)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+          className="flex items-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-gradient-to-r from-gray-100 to-gray-50 rounded-xl hover:from-gray-200 hover:to-gray-100 transition-all duration-300 hover:scale-105 shadow-sm hover:shadow-md"
         >
-          <Upload className="w-4 h-4" />
-          Add Data (RAG)
+          <Upload className="w-3 h-3 sm:w-4 sm:h-4" />
+          <span className="hidden sm:inline">Add Data (RAG)</span>
+          <span className="sm:hidden">Add Data</span>
         </button>
         {companyDocuments.length > 0 && (
-          <p className="text-xs text-gray-500 mt-1">{companyDocuments.length} document(s) uploaded</p>
+          <p className="text-xs text-gray-500 mt-1.5 ml-1">{companyDocuments.length} document(s) uploaded</p>
         )}
       </div>
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-shrink-0 p-6 pb-4">
-          <div className="max-w-2xl mx-auto">
-            <VideoPlayer
-              state={videoState}
-              avatarImageUrl={settings.avatarPreviewImageUrl}
-              speakingVideoUrl={currentVideoUrl}
-              speakingVideoUrls={gooeyResponse?.videoUrls}
-              caption={currentCaption}
-              onVideoEnded={handleVideoEnded}
-            />
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+        <div className="flex-shrink-0 p-3 sm:p-4 md:p-6 pb-2 md:pb-4 overflow-auto" style={{ height: `${100 - transcriptHeight}%`, minHeight: '180px' }}>
+          <div className="max-w-full md:max-w-2xl mx-auto h-full flex items-center justify-center">
+            <div className="w-full px-2 sm:px-0">
+              <VideoPlayer
+                state={videoState}
+                avatarImageUrl={settings.avatarPreviewImageUrl}
+                speakingVideoUrl={currentVideoUrl}
+                speakingVideoUrls={gooeyResponse?.videoUrls}
+                caption={currentCaption}
+                onVideoEnded={handleVideoEnded}
+              />
+            </div>
           </div>
         </div>
 
-        <TranscriptView
-          messages={messages}
-          onPlayMessage={handlePlayMessage}
-        />
+        <div className="flex-shrink-0 overflow-hidden">
+          <TranscriptView
+            messages={messages}
+            onPlayMessage={handlePlayMessage}
+            transcriptHeight={transcriptHeight}
+            onHeightChange={setTranscriptHeight}
+          />
+        </div>
 
-        <MessageInput
-          input={input}
-          onInputChange={setInput}
-          onSend={handleSend}
-          onKeyDown={handleKeyDown}
-          isListening={false}
-          onToggleListening={() => {}}
-          isBusy={isBusy}
-          speechError={speechError}
-          attachments={attachments}
-          onAttachmentSelect={handleAttachmentSelect}
-          onRemoveAttachment={removeAttachment}
-          isProcessingAttachments={isProcessingAttachments}
-        />
+        <div className="flex-shrink-0">
+          <MessageInput
+            input={input}
+            onInputChange={setInput}
+            onSend={handleSend}
+            onKeyDown={handleKeyDown}
+            isListening={false}
+            onToggleListening={() => {}}
+            isBusy={isBusy}
+            speechError={speechError}
+            attachments={attachments}
+            onAttachmentSelect={handleAttachmentSelect}
+            onRemoveAttachment={removeAttachment}
+            isProcessingAttachments={isProcessingAttachments}
+          />
+        </div>
       </div>
 
       {showSettings && (
@@ -374,16 +384,19 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
       )}
 
       {showInviteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowInviteModal(false)} />
-          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Add Team Member</h3>
-              <button onClick={() => setShowInviteModal(false)} className="p-2 hover:bg-gray-100 rounded-full">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-scale-in">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowInviteModal(false)} />
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 sm:p-8 animate-slide-up">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gray-900">Add Team Member</h3>
+              <button
+                onClick={() => setShowInviteModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
                 <input
@@ -392,13 +405,13 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
                   onChange={(e) => setInviteEmail(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
                   placeholder="colleague@company.com"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm"
+                  className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
                 />
               </div>
               <button
                 onClick={handleInvite}
                 disabled={!inviteEmail.trim()}
-                className="w-full py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-3.5 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:scale-105 ripple font-medium"
               >
                 <Mail className="w-4 h-4" />
                 Add Member
@@ -409,16 +422,19 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
       )}
 
       {showDocumentUpload && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowDocumentUpload(false)} />
-          <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Add Company Data</h3>
-              <button onClick={() => setShowDocumentUpload(false)} className="p-2 hover:bg-gray-100 rounded-full">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-scale-in">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowDocumentUpload(false)} />
+          <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl p-6 sm:p-8 animate-slide-up max-h-[90vh] overflow-y-auto scrollbar-thin">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gray-900">Add Company Data</h3>
+              <button
+                onClick={() => setShowDocumentUpload(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Document Title</label>
                 <input
@@ -426,7 +442,7 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
                   value={documentTitle}
                   onChange={(e) => setDocumentTitle(e.target.value)}
                   placeholder="Company Policy"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm"
+                  className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
                 />
               </div>
               <div>
@@ -436,13 +452,13 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
                   onChange={(e) => setDocumentContent(e.target.value)}
                   rows={10}
                   placeholder="Enter document content here..."
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm"
+                  className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all scrollbar-thin"
                 />
               </div>
               <button
                 onClick={handleDocumentUpload}
                 disabled={!documentTitle.trim() || !documentContent.trim()}
-                className="w-full py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-3.5 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:scale-105 ripple font-medium"
               >
                 <Upload className="w-4 h-4" />
                 Upload Document
