@@ -16,13 +16,14 @@ import {
 import { db } from '../lib/firebase';
 import { Conversation, Message, ConversationSettings, DEFAULT_CONVERSATION_SETTINGS, Company, CompanyDocument } from '../types';
 
-export async function createConversation(userId: string, title: string): Promise<string> {
+export async function createConversation(userId: string, title: string, type: 'normal' | 'virtual-eyes' = 'normal'): Promise<string> {
   const conversationsRef = collection(db, 'conversations');
   const docRef = await addDoc(conversationsRef, {
     userId,
     title,
     createdAt: Timestamp.now(),
-    settings: DEFAULT_CONVERSATION_SETTINGS
+    settings: DEFAULT_CONVERSATION_SETTINGS,
+    type
   });
   return docRef.id;
 }
@@ -44,7 +45,8 @@ export function subscribeToUserConversations(
       userId: doc.data().userId,
       title: doc.data().title,
       createdAt: doc.data().createdAt.toDate(),
-      settings: doc.data().settings || DEFAULT_CONVERSATION_SETTINGS
+      settings: doc.data().settings || DEFAULT_CONVERSATION_SETTINGS,
+      type: doc.data().type || 'normal'
     }));
     callback(conversations);
   });
@@ -64,7 +66,8 @@ export async function getConversation(conversationId: string): Promise<Conversat
     userId: data.userId,
     title: data.title,
     createdAt: data.createdAt.toDate(),
-    settings: data.settings || DEFAULT_CONVERSATION_SETTINGS
+    settings: data.settings || DEFAULT_CONVERSATION_SETTINGS,
+    type: data.type || 'normal'
   };
 }
 
@@ -86,7 +89,8 @@ export function subscribeToConversation(
       userId: data.userId,
       title: data.title,
       createdAt: data.createdAt.toDate(),
-      settings: data.settings || DEFAULT_CONVERSATION_SETTINGS
+      settings: data.settings || DEFAULT_CONVERSATION_SETTINGS,
+      type: data.type || 'normal'
     });
   });
 }
@@ -137,6 +141,10 @@ export async function addMessage(message: Omit<Message, 'id'>): Promise<string> 
     messageData.videoUrls = message.videoUrls;
   }
 
+  if (message.visionContext !== undefined) {
+    messageData.visionContext = message.visionContext;
+  }
+
   const docRef = await addDoc(messagesRef, messageData);
   return docRef.id;
 }
@@ -153,16 +161,23 @@ export function subscribeToMessages(
   );
 
   return onSnapshot(q, (snapshot) => {
-    const messages = snapshot.docs.map(doc => ({
-      id: doc.id,
-      conversationId: doc.data().conversationId,
-      sender: doc.data().sender,
-      text: doc.data().text,
-      transcript: doc.data().transcript,
-      videoUrl: doc.data().videoUrl,
-      videoUrls: doc.data().videoUrls,
-      createdAt: doc.data().createdAt.toDate()
-    }));
+    const messages = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        conversationId: data.conversationId,
+        sender: data.sender,
+        text: data.text,
+        transcript: data.transcript,
+        videoUrl: data.videoUrl,
+        videoUrls: data.videoUrls,
+        createdAt: data.createdAt.toDate(),
+        visionContext: data.visionContext ? {
+          ...data.visionContext,
+          timestamp: data.visionContext.timestamp?.toDate ? data.visionContext.timestamp.toDate() : new Date(data.visionContext.timestamp)
+        } : undefined
+      };
+    });
     callback(messages);
   });
 }

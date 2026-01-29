@@ -52,6 +52,17 @@ export interface Conversation {
   title: string;
   createdAt: Date;
   settings?: ConversationSettings;
+  type?: 'normal' | 'virtual-eyes';
+}
+
+// ==========================
+// VISION CONTEXT
+// ==========================
+export interface VisionContext {
+  timestamp: Date;
+  objects: Array<{ class: string; score: number; bbox: number[] }>;
+  text: string;
+  description: string;
 }
 
 // ==========================
@@ -66,6 +77,7 @@ export interface Message {
   videoUrl?: string | null;
   videoUrls?: string[] | null;
   createdAt: Date;
+  visionContext?: VisionContext;
 }
 
 // ==========================

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
-import { MessageSquare, Plus, Building2 } from 'lucide-react';
+import { MessageSquare, Plus, Building2, Eye } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Sidebar from '../components/Sidebar';
 import ChatView from '../components/ChatView';
 import CompanyChat from '../components/CompanyChat';
+import VirtualEyesChat from '../components/VirtualEyesChat';
 import { Conversation, Company } from '../types';
 import { subscribeToUserConversations, createConversation, subscribeToUserCompanies, createCompany } from '../services/firestore';
 
@@ -15,6 +16,7 @@ export default function Dashboard() {
   const [activeCompanyId, setActiveCompanyId] = useState<string | null>(null);
   const [creatingChat, setCreatingChat] = useState(false);
   const [creatingCompany, setCreatingCompany] = useState(false);
+  const [creatingVirtualEyes, setCreatingVirtualEyes] = useState(false);
 
   const { currentUser, loading } = useAuth();
 
@@ -69,6 +71,23 @@ export default function Dashboard() {
     }
   }
 
+  async function handleNewVirtualEyes() {
+    if (!currentUser || creatingVirtualEyes) return;
+
+    setCreatingVirtualEyes(true);
+    try {
+      const virtualEyesConversations = conversations.filter(c => c.type === 'virtual-eyes');
+      const title = `Virtual Eyes ${virtualEyesConversations.length + 1}`;
+      const newId = await createConversation(currentUser.uid, title, 'virtual-eyes');
+      setActiveConversationId(newId);
+      setActiveCompanyId(null);
+    } catch (error) {
+      console.error('Failed to create virtual eyes:', error);
+    } finally {
+      setCreatingVirtualEyes(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 flex items-center justify-center">
@@ -95,13 +114,22 @@ export default function Dashboard() {
         onSelectCompany={setActiveCompanyId}
         onNewChat={handleNewChat}
         onNewCompany={handleNewCompany}
+        onNewVirtualEyes={handleNewVirtualEyes}
         creatingChat={creatingChat}
         creatingCompany={creatingCompany}
+        creatingVirtualEyes={creatingVirtualEyes}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         {activeConversationId ? (
-          <ChatView conversationId={activeConversationId} />
+          (() => {
+            const conv = conversations.find(c => c.id === activeConversationId);
+            return conv?.type === 'virtual-eyes' ? (
+              <VirtualEyesChat conversationId={activeConversationId} />
+            ) : (
+              <ChatView conversationId={activeConversationId} />
+            );
+          })()
         ) : activeCompanyId ? (
           <CompanyChat companyId={activeCompanyId} />
         ) : (
@@ -116,7 +144,7 @@ export default function Dashboard() {
               Start a New Conversation
             </h2>
             <p className="text-gray-600 max-w-md text-lg leading-relaxed">
-              Start a new conversation to talk with the AI. Click "New Chat" or "Add Company" in the sidebar to begin.
+              Start a new conversation to talk with the AI. Choose from Chat, Virtual Eyes, or Company modes.
             </p>
             <div className="mt-8 flex gap-3">
               <button
@@ -126,6 +154,14 @@ export default function Dashboard() {
               >
                 <Plus className="w-4 h-4" />
                 New Chat
+              </button>
+              <button
+                onClick={handleNewVirtualEyes}
+                disabled={creatingVirtualEyes}
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 hover:shadow-lg transition-all duration-300 flex items-center gap-2 hover:scale-105 ripple font-medium disabled:opacity-50"
+              >
+                <Eye className="w-4 h-4" />
+                Virtual Eyes
               </button>
               <button
                 onClick={handleNewCompany}

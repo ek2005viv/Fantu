@@ -93,6 +93,7 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
 
     const userMessage = text.trim();
     const conversationId = `company_${companyId}`;
+    const currentAttachmentContext = attachmentContext;
 
     setInput('');
     setVideoState('thinking');
@@ -100,10 +101,14 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
     setGooeyResponse(null);
 
     try {
+      const userMessageWithContext = currentAttachmentContext
+        ? `${userMessage}\n\n[Attachment Context]:\n${currentAttachmentContext}`
+        : userMessage;
+
       await addMessage({
         conversationId,
         sender: 'user',
-        text: userMessage,
+        text: userMessageWithContext,
         createdAt: new Date()
       });
 
@@ -131,11 +136,9 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
         ? `You are an AI assistant with access to the company's knowledge base. Use the following relevant documents to answer the user's question accurately. If the answer is not in the documents, say so clearly.${documentContext}`
         : '';
 
-      const enhancedUserMessage = attachmentContext
-        ? `${systemContext}\n\nAttached content context:\n${attachmentContext}\n\n[USER QUESTION]\n${userMessage}`
-        : systemContext
-          ? `${systemContext}\n\n[USER QUESTION]\n${userMessage}`
-          : userMessage;
+      const enhancedUserMessage = systemContext
+        ? `${systemContext}\n\n[USER QUESTION]\n${userMessage}`
+        : userMessage;
 
       const responseText = await generateAIResponse(
         enhancedUserMessage,
