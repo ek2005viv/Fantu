@@ -68,9 +68,21 @@ export default function VirtualEyesChat({ conversationId }: VirtualEyesChatProps
     };
   }, []);
 
+  useEffect(() => {
+    console.log('📹 [CAMERA STATE] isCameraActive changed to:', isCameraActive);
+    console.log('📹 [CAMERA STATE] videoRef.current exists:', !!videoRef.current);
+    console.log('📹 [CAMERA STATE] streamRef.current exists:', !!streamRef.current);
+    if (videoRef.current) {
+      console.log('📹 [CAMERA STATE] video srcObject:', videoRef.current.srcObject);
+      console.log('📹 [CAMERA STATE] video paused:', videoRef.current.paused);
+      console.log('📹 [CAMERA STATE] video readyState:', videoRef.current.readyState);
+    }
+  }, [isCameraActive]);
+
   async function startCamera() {
     try {
-      console.log('Requesting camera access...');
+      console.log('🎥 [START CAMERA] Button clicked - requesting camera access...');
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'user',
@@ -79,34 +91,58 @@ export default function VirtualEyesChat({ conversationId }: VirtualEyesChatProps
         }
       });
 
+      console.log('🎥 [START CAMERA] Stream obtained:', stream);
+      console.log('🎥 [START CAMERA] Video tracks:', stream.getVideoTracks());
+      console.log('🎥 [START CAMERA] Track enabled:', stream.getVideoTracks()[0]?.enabled);
+      console.log('🎥 [START CAMERA] Track readyState:', stream.getVideoTracks()[0]?.readyState);
+
       if (videoRef.current) {
+        console.log('🎥 [START CAMERA] Video ref exists, assigning stream...');
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
 
+        console.log('🎥 [START CAMERA] Waiting for metadata to load...');
         videoRef.current.onloadedmetadata = () => {
-          console.log('Camera stream ready, dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
+          console.log('🎥 [START CAMERA] Metadata loaded!');
+          console.log('🎥 [START CAMERA] Video dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
+          console.log('🎥 [START CAMERA] Video readyState:', videoRef.current?.readyState);
+
           videoRef.current?.play().then(() => {
-            console.log('Camera video playing');
+            console.log('✅ [START CAMERA] Video is now playing!');
+            console.log('✅ [START CAMERA] Setting isCameraActive to true');
             setIsCameraActive(true);
           }).catch(err => {
-            console.error('Failed to play video:', err);
+            console.error('❌ [START CAMERA] Failed to play video:', err);
           });
         };
+
+        videoRef.current.onerror = (e) => {
+          console.error('❌ [START CAMERA] Video element error:', e);
+        };
+      } else {
+        console.error('❌ [START CAMERA] videoRef.current is null!');
       }
     } catch (error) {
-      console.error('Failed to start camera:', error);
+      console.error('❌ [START CAMERA] Failed to get camera stream:', error);
       alert('Failed to access camera. Please check permissions and ensure you are using HTTPS.');
     }
   }
 
   function stopCamera() {
+    console.log('🛑 [STOP CAMERA] Stopping camera...');
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      console.log('🛑 [STOP CAMERA] Stopping all tracks...');
+      streamRef.current.getTracks().forEach(track => {
+        console.log('🛑 [STOP CAMERA] Stopping track:', track.kind);
+        track.stop();
+      });
       streamRef.current = null;
     }
     if (videoRef.current) {
+      console.log('🛑 [STOP CAMERA] Clearing video srcObject...');
       videoRef.current.srcObject = null;
     }
+    console.log('🛑 [STOP CAMERA] Setting isCameraActive to false');
     setIsCameraActive(false);
   }
 
@@ -303,19 +339,20 @@ INSTRUCTIONS:
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">Virtual Eyes Mode</h3>
                   <p className="text-gray-600 mb-4">AI can see and understand your surroundings through the camera</p>
 
-                  {!isCameraActive && (
-                    <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg max-w-md mx-auto">
-                      <p className="text-sm text-amber-800 font-medium mb-2">Camera is currently off</p>
-                      <p className="text-xs text-amber-700">Click "Start Camera" in the top right to enable AI vision</p>
-                    </div>
-                  )}
-
-                  {isCameraActive && (
-                    <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg max-w-md mx-auto">
-                      <p className="text-sm text-green-800 font-medium mb-2">Camera Active</p>
-                      <p className="text-xs text-green-700">AI can now see what's in front of your camera. Ask me anything!</p>
-                    </div>
-                  )}
+                  {(() => {
+                    console.log('💬 [EMPTY STATE] Rendering status message - isCameraActive:', isCameraActive);
+                    return !isCameraActive ? (
+                      <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg max-w-md mx-auto">
+                        <p className="text-sm text-amber-800 font-medium mb-2">📷 Camera is currently off</p>
+                        <p className="text-xs text-amber-700">Click "Start Camera" in the top right to enable AI vision</p>
+                      </div>
+                    ) : (
+                      <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg max-w-md mx-auto">
+                        <p className="text-sm text-green-800 font-medium mb-2">✅ Camera Active</p>
+                        <p className="text-xs text-green-700">AI can now see what's in front of your camera. Ask me anything!</p>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -347,9 +384,21 @@ INSTRUCTIONS:
 
         <div className="w-[500px] bg-gray-50 flex flex-col relative">
           <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-            <h3 className="font-semibold text-gray-900">AI Assistant</h3>
+            <div>
+              <h3 className="font-semibold text-gray-900">AI Assistant</h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Camera: {isCameraActive ? '🟢 Active' : '🔴 Inactive'}
+              </p>
+            </div>
             <button
-              onClick={isCameraActive ? stopCamera : startCamera}
+              onClick={() => {
+                console.log('🔘 [BUTTON] Camera button clicked! Current state:', isCameraActive);
+                if (isCameraActive) {
+                  stopCamera();
+                } else {
+                  startCamera();
+                }
+              }}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                 isCameraActive
                   ? 'bg-red-100 text-red-700 hover:bg-red-200'
@@ -381,37 +430,45 @@ INSTRUCTIONS:
             />
           </div>
 
-          {isCameraActive && (
-            <div className="absolute bottom-6 right-6 w-56 h-42 bg-black rounded-lg overflow-hidden shadow-2xl border-3 border-green-500 z-10">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-                style={{ transform: 'scaleX(-1)' }}
-              />
-              {isProcessingVision && (
-                <div className="absolute inset-0 bg-blue-600/50 flex items-center justify-center backdrop-blur-sm">
-                  <div className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
-                    <Eye className="w-4 h-4 animate-pulse" />
-                    <span>Analyzing Vision...</span>
+          {(() => {
+            console.log('🖼️ [RENDER] Camera preview conditional render check - isCameraActive:', isCameraActive);
+            return isCameraActive && (
+              <div className="absolute bottom-6 right-6 w-64 h-48 bg-black rounded-lg overflow-hidden shadow-2xl border-4 border-green-500 z-10">
+                {console.log('🖼️ [RENDER] Camera preview div is rendering!')}
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                  style={{ transform: 'scaleX(-1)' }}
+                  onLoadStart={() => console.log('🖼️ [VIDEO] onLoadStart event')}
+                  onLoadedData={() => console.log('🖼️ [VIDEO] onLoadedData event')}
+                  onPlay={() => console.log('🖼️ [VIDEO] onPlay event')}
+                  onCanPlay={() => console.log('🖼️ [VIDEO] onCanPlay event')}
+                />
+                {isProcessingVision && (
+                  <div className="absolute inset-0 bg-blue-600/50 flex items-center justify-center backdrop-blur-sm">
+                    <div className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
+                      <Eye className="w-4 h-4 animate-pulse" />
+                      <span>Analyzing Vision...</span>
+                    </div>
+                  </div>
+                )}
+                <div className="absolute top-2 left-2">
+                  <div className="flex items-center gap-1 px-2 py-1 bg-black/80 rounded text-xs text-white font-medium">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                    <span>Your Camera (Live)</span>
                   </div>
                 </div>
-              )}
-              <div className="absolute top-2 left-2">
-                <div className="flex items-center gap-1 px-2 py-1 bg-black/80 rounded text-xs text-white font-medium">
-                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                  <span>Your Camera (Live)</span>
+                <div className="absolute bottom-2 left-2">
+                  <div className="px-2 py-1 bg-green-600/90 rounded text-xs text-white font-medium">
+                    AI Vision Active
+                  </div>
                 </div>
               </div>
-              <div className="absolute bottom-2 left-2">
-                <div className="px-2 py-1 bg-green-600/90 rounded text-xs text-white font-medium">
-                  AI Vision Active
-                </div>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           <canvas ref={canvasRef} className="hidden" />
         </div>
