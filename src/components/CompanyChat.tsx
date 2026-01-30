@@ -513,20 +513,20 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
 
       {showInviteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-scale-in">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowInviteModal(false)} />
-          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 sm:p-8 animate-slide-up max-h-[90vh] overflow-y-auto scrollbar-thin">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowInviteModal(false)} />
+          <div className="relative w-full max-w-md glass-darker border border-cyan-500/30 rounded-3xl shadow-2xl p-6 sm:p-8 animate-slide-up max-h-[90vh] overflow-y-auto scrollbar-thin">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900">Team Members</h3>
+              <h3 className="text-xl font-bold text-white heading-font">Team Members</h3>
               <button
                 onClick={() => setShowInviteModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-2 hover:bg-cyan-500/20 rounded-full transition-colors"
               >
-                <X className="w-5 h-5 text-gray-500" />
+                <X className="w-5 h-5 text-slate-400" />
               </button>
             </div>
             <div className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Add New Member</label>
+                <label className="block text-sm font-medium text-cyan-400 mb-2 heading-font">Add New Member</label>
                 <div className="flex gap-2">
                   <input
                     type="email"
@@ -534,12 +534,12 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
                     onChange={(e) => setInviteEmail(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
                     placeholder="colleague@company.com"
-                    className="flex-1 px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                    className="flex-1 px-4 py-3.5 glass-effect border border-cyan-500/20 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 transition-all"
                   />
                   <button
                     onClick={handleInvite}
                     disabled={!inviteEmail.trim()}
-                    className="px-4 py-3.5 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
+                    className="px-4 py-3.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl hover:neon-glow transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
                   >
                     <Mail className="w-4 h-4" />
                   </button>
@@ -547,26 +547,26 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
               </div>
               {companyMembers.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Current Members</label>
+                  <label className="block text-sm font-medium text-cyan-400 mb-3 heading-font">Current Members</label>
                   <div className="space-y-2 max-h-64 overflow-y-auto scrollbar-thin">
                     {companyMembers.map((member) => (
                       <div
                         key={member.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                        className="flex items-center justify-between p-3 glass-effect border border-cyan-500/10 rounded-xl hover:border-cyan-500/30 transition-colors"
                       >
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
+                          <p className="text-sm font-medium text-white truncate">
                             {member.email}
                             {member.email === currentUser?.email && (
-                              <span className="ml-2 text-xs text-gray-500">(you)</span>
+                              <span className="ml-2 text-xs text-slate-400">(you)</span>
                             )}
                           </p>
-                          <p className="text-xs text-gray-500 capitalize">{member.role}</p>
+                          <p className="text-xs text-slate-400 capitalize">{member.role}</p>
                         </div>
                         {member.role !== 'owner' && member.email !== currentUser?.email && (
                           <button
                             onClick={() => handleRemoveMember(member.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
                             title="Remove member"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -584,16 +584,16 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
 
       {showDocumentUpload && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-scale-in">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => {
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => {
             setShowDocumentUpload(false);
             setPdfFile(null);
             setRawPdfContent('');
             setDocumentTitle('');
             setDocumentContent('');
           }} />
-          <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl p-6 sm:p-8 animate-slide-up max-h-[90vh] overflow-y-auto scrollbar-thin">
+          <div className="relative w-full max-w-2xl glass-darker border border-cyan-500/30 rounded-3xl shadow-2xl p-6 sm:p-8 animate-slide-up max-h-[90vh] overflow-y-auto scrollbar-thin">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900">Add Company Data</h3>
+              <h3 className="text-xl font-bold text-white heading-font">Add Company Data</h3>
               <button
                 onClick={() => {
                   setShowDocumentUpload(false);
@@ -602,65 +602,65 @@ export default function CompanyChat({ companyId }: CompanyChatProps) {
                   setDocumentTitle('');
                   setDocumentContent('');
                 }}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-2 hover:bg-cyan-500/20 rounded-full transition-colors"
               >
-                <X className="w-5 h-5 text-gray-500" />
+                <X className="w-5 h-5 text-slate-400" />
               </button>
             </div>
             <div className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Upload PDF Document</label>
+                <label className="block text-sm font-medium text-cyan-400 mb-2 heading-font">Upload PDF Document</label>
                 <div className="relative">
                   <input
                     type="file"
                     accept=".pdf"
                     onChange={handlePdfUpload}
                     disabled={isProcessingPdf}
-                    className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-900 file:text-white hover:file:bg-gray-800 file:cursor-pointer"
+                    className="w-full px-4 py-3.5 glass-effect border border-cyan-500/20 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gradient-to-r file:from-cyan-500 file:to-blue-500 file:text-white hover:file:opacity-90 file:cursor-pointer"
                   />
                   {isProcessingPdf && (
                     <div className="absolute right-3 top-3">
-                      <div className="animate-spin h-5 w-5 border-2 border-gray-900 border-t-transparent rounded-full"></div>
+                      <div className="animate-spin h-5 w-5 border-2 border-cyan-500 border-t-transparent rounded-full"></div>
                     </div>
                   )}
                 </div>
                 {pdfFile && !isProcessingPdf && (
-                  <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-xs text-green-700 font-medium">✓ PDF loaded: {pdfFile.name}</p>
-                    <p className="text-xs text-green-600 mt-1">Content extracted and ready to upload. You can edit the text below if needed.</p>
+                  <div className="mt-2 p-3 glass-effect border border-green-500/30 rounded-lg">
+                    <p className="text-xs text-green-400 font-medium">✓ PDF loaded: {pdfFile.name}</p>
+                    <p className="text-xs text-green-300 mt-1">Content extracted and ready to upload. You can edit the text below if needed.</p>
                   </div>
                 )}
                 {!pdfFile && (
-                  <p className="text-xs text-gray-500 mt-1">Or manually enter document details below</p>
+                  <p className="text-xs text-slate-400 mt-1">Or manually enter document details below</p>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Document Title</label>
+                <label className="block text-sm font-medium text-cyan-400 mb-2 heading-font">Document Title</label>
                 <input
                   type="text"
                   value={documentTitle}
                   onChange={(e) => setDocumentTitle(e.target.value)}
                   placeholder="Company Policy"
-                  className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3.5 glass-effect border border-cyan-500/20 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 transition-all"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-cyan-400 mb-2 heading-font">
                   Content
-                  {pdfFile && <span className="text-xs text-gray-500 ml-2">(Formatted for readability - raw PDF data will be used for RAG)</span>}
+                  {pdfFile && <span className="text-xs text-slate-400 ml-2">(Formatted for readability - raw PDF data will be used for RAG)</span>}
                 </label>
                 <textarea
                   value={documentContent}
                   onChange={(e) => setDocumentContent(e.target.value)}
                   rows={10}
                   placeholder="Enter document content here..."
-                  className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all scrollbar-thin"
+                  className="w-full px-4 py-3.5 glass-effect border border-cyan-500/20 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 transition-all scrollbar-thin"
                 />
               </div>
               <button
                 onClick={handleDocumentUpload}
                 disabled={!documentTitle.trim() || !documentContent.trim() || isProcessingPdf}
-                className="w-full py-3.5 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:scale-105 ripple font-medium"
+                className="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl hover:neon-glow transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:scale-105 ripple font-medium heading-font"
               >
                 <Upload className="w-4 h-4" />
                 Upload Document
